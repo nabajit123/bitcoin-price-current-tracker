@@ -8,6 +8,34 @@ that were just set.
 
 When the p1 object is created and the checking_1 method is called on it with the arguments "John" and 36, the name and age attributes of the p1 object are set to "John" and 36, respectively. The checking_1 method then prints out the string "John(36)" using these attributes.
 """
+
+"""
+Class Variables are variables that are shared among all instances of a class. 
+They are defined within the class, but outside of any methods, and are accessed using the class name, not the instance name. 
+Class variables are typically used to store data that is common to all instances of the class, such as configuration settings or constants. Here's an example of a class variable:
+class MyClass:
+    class_variable = 0
+
+    def __init__(self, instance_variable):
+        self.instance_variable = instance_variable
+"""
+"""
+Instance Variables (also known as constructor variables) are variables that are unique to each instance of a class. They are defined within the class constructor (__init__ method) and are accessed using the instance name. 
+Instance variables are typically used to store data that is specific to each instance of the class, such as user input or data that varies between instances. Here's an example of an instance variable:
+class MyClass:
+    def __init__(self, instance_variable):
+        self.instance_variable = instance_variable
+
+"""
+
+"""
+It's important to note that class variables are shared among all instances of a class, 
+so if you change the value of a class variable in one instance, 
+it will be changed for all instances. On the other hand, instance variables are unique to each instance, so changing the value of an instance variable in one instance will not affect the value of that variable in other instances.
+
+In general, you should use class variables when you want to store data that is common to all instances of a class, 
+and instance variables when you want to store data that is specific to each instance of a class.
+"""
 class Person:
 
   def checking_1(self, name, age):
