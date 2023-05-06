@@ -13,6 +13,6 @@ data = response.json()
 price_inr = data["bpi"]["INR"]["rate_float"]
 
 # Print the current Bitcoin price in INR
-print("Current Bitcoin price in INR:", )
+print("Current Bitcoin price in INR:", price_inr)
 
 
