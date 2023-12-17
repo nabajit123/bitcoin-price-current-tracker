@@ -1,0 +1,322 @@
+1.  SELECT MAX(salary) 
+    FROM employees 
+    WHERE salary NOT IN (SELECT MAX(salary) FROM employees);
+
+2.
+    SELECT salary 
+    FROM employees 
+    ORDER BY salary DESC 
+    LIMIT 1 OFFSET 1; #The "LIMIT 1 OFFSET 1" at the end tells the query to select only one result after skipping the first one.
+
+
+
+
+**Data Lag For Turbine Level DATA---->>>>>
+
+SELECT  SCADA_ID, TIMESTAMP, UPLOAD_TIMESTAMP
+FROM `RSM_SUBSTATION_TURBINE` s_t
+INNER JOIN `RSM_TURBINE_MASTER` t_m
+    on s_t.TURBINE_ID = t_m.TURBINE_ID
+INNER JOIN `DATA_ACTUAL_WTG_RAW_2021` raw
+    on raw.TURBINE_ID = s_t.TURBINE_ID LIMIT 10
+    
+    
+    
+**Data Lag For Solar---->>>>
+ 
+sol_1====SELECT raw.SUBSTATION_ID, SCADA_ID, TIMESTAMP, UPLOAD_TIMESTAMP FROM `DATA_ACTUAL_PSS_RAW_2021` raw INNER JOIN `RSM_INVERTER_MASTER` i_m on raw.SUBSTATION_ID= i_m.SUBSTATION_ID
+
+
+
+sol_2====SELECT RSM_SUBSTATION_MASTER.SUBSTATION_NAME, TIMESTAMP, UPLOAD_TIMESTAMP FROM `DATA_ACTUAL_PSS_PRO_2021` INNER JOIN `RSM_SUBSTATION_MASTER` ON DATA_ACTUAL_PSS_PRO_2021.SUBSTATION_ID=RSM_SUBSTATION_MASTER.SUBSTATION_ID LIMIT 500
+
+
+
+----
+**detect the wrong solar data---->>>>
+
+SELECT SUBSTATION_ID, TIME_STAMP, UPLOAD_TIMESTAMP FROM `DATA_SOLAR_ACTUAL_SUBSTATION` WHERE SUBSTATION_ID in (SELECT SUBSTATION_ID FROM `RSM_SUBSTATION_MASTER` where SUBSTATION_NAME LIKE '%uljapur%' ) and TIME_STAMP ='2021-10-01 00:00:00' ORDER BY SUBSTATION_ID, TIME_STAMP
+
+SELECT * FROM `DATA_ACTUAL_PSS_PRO_2021` where SUBSTATION_ID in(SELECT SUBSTATION_ID from RSM_SUBSTATION_MASTER where ENERGY_TYPE='SOLAR') limit 100
+
+
+SELECT LATITUDE, LONGITUDE FROM `RSM_SUBSTATION_MASTER` INNER JOIN `RSM_SUBSTATION_LOCATION` on RSM_SUBSTATION_MASTER.SUBSTATION_ID=RSM_SUBSTATION_LOCATION.SUBSTATION_ID INNER JOIN `RSM_LOCATION_MASTER` on RSM_SUBSTATION_LOCATION.LOCATION_ID=RSM_LOCATION_MASTER.LOCATION_ID where RSM_SUBSTATION_MASTER.SUBSTATION_ID='SS00101'
+
+
+SELECT RSM_SUBSTATION_MASTER.SUBSTATION_ID,RSM_SUBSTATION_MASTER.ENERGY_TYPE,LATITUDE, LONGITUDE FROM `RSM_SUBSTATION_MASTER` INNER JOIN `RSM_SUBSTATION_LOCATION` on RSM_SUBSTATION_MASTER.SUBSTATION_ID=RSM_SUBSTATION_LOCATION.SUBSTATION_ID INNER JOIN `RSM_LOCATION_MASTER` on RSM_SUBSTATION_LOCATION.LOCATION_ID=RSM_LOCATION_MASTER.LOCATION_ID where RSM_SUBSTATION_MASTER.SUBSTATION_ID='SS00101'
+
+
+
+SELECT RSM_SUBSTATION_MASTER.SUBSTATION_ID,RSM_SUBSTATION_MASTER.ENERGY_TYPE,AVG(LATITUDE), AVG(LONGITUDE) FROM `RSM_SUBSTATION_MASTER` INNER JOIN `RSM_SUBSTATION_LOCATION` on RSM_SUBSTATION_MASTER.SUBSTATION_ID=RSM_SUBSTATION_LOCATION.SUBSTATION_ID INNER JOIN `RSM_LOCATION_MASTER` on RSM_SUBSTATION_LOCATION.LOCATION_ID=RSM_LOCATION_MASTER.LOCATION_ID GROUP BY RSM_SUBSTATION_MASTER.SUBSTATION_ID HAVING RSM_SUBSTATION_MASTER.SUBSTATION_ID='SS00101'
+
+
+
+
+
+
+18-11-1021----->>>
+SELECT * FROM `DATA_SCHEDULE_PSS_2021` where SUBSTATION_ID in('SS00600','SS00601')
+
+
+
+ to collect the active substation :
+ 
+SELECT * FROM `RSM_SUBSTATION_MASTER` WHERE STATE_CODE="IN_HR" and SUBSTATION_ID in (SELECT SUBSTATION_ID from OPS_CONFIGURATION_FORECASTS where STATUS=1)
+
+
+
+list of wind substation for DSM CALCULATION---->>>
+
+SELECT *  FROM `OPS_CONFIGURATION_FORECASTS` WHERE `REV_MODEL` IN ('ADC_OPT_F','RTV')
+after_merage to know the states-->>>for ppa rates
+SELECT RSM_SUBSTATION_MASTER.SUBSTATION_ID FROM `RSM_SUBSTATION_MASTER` inner join `OPS_CONFIGURATION_FORECASTS` on RSM_SUBSTATION_MASTER.SUBSTATION_ID=OPS_CONFIGURATION_FORECASTS.SUBSTATION_ID where OPS_CONFIGURATION_FORECASTS.REV_MODEL IN ('ADC_OPT_F','RTV')
+
+
+/home/kalyan/.pyenv/versions/3.9.5/envs/venv/bin/python "/home/kalyan/Desktop/task(python file)/dsm_30_nov.py"
+
+
+
+--------------------------------------------find max data avail of wsp for one day state wise
+SELECT 
+    T1.SUBSTATION_ID, TIMESTAMP, COUNT(*)
+FROM
+    DATA_ACTUAL_PSS_PRO_2021 T1
+        INNER JOIN
+    RSM_SUBSTATION_MASTER T2 ON STATE_CODE = 'IN_GJ'
+        AND T1.SUBSTATION_ID = T2.SUBSTATION_ID
+WHERE
+    SOURCE_TAG = 'UCA_SCADA_CLT'
+        AND TIMESTAMP >= '2021-01-01 00:00:00'
+        AND TIMESTAMP < '2021-01-01 23:59:00 '
+        AND ATTRIBUTE_4 IS NOT NULL
+GROUP BY SUBSTATION_ID
+ORDER BY COUNT(*) DESC
+----------------------------------------------find the per agp--># of pss mapping sort by desc order
+
+
+SELECT AGP_ID , count(PSS_ID) as cnt FROM `RSM_LINK_PSS_AGP` GROUP BY AGP_ID ORDER BY cnt DESC
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+-- Fetch 10 substations having highest actual wind speed data availability.  
+-- TABLENAME, TIMESTAMP, AND STATE_CODE to be changed accordingly.
+
+SELECT 
+    T1.SUBSTATION_ID, COUNT(T1.SUBSTATION_ID) AS CNT
+FROM
+    DATA_ACTUAL_PSS_PRO_2021 T1
+        INNER JOIN
+    RSM_SUBSTATION_MASTER T2 ON T1.SUBSTATION_ID = T2.SUBSTATION_ID
+WHERE
+    SOURCE_TAG = 'UCA_SCADA_CLT' AND STATE_CODE = 'IN_GJ'
+        AND TIMESTAMP >= '2021-01-01 00:00:00'
+        AND TIMESTAMP < '2021-01-01 23:59:00 '
+        AND ATTRIBUTE_4 IS NOT NULL AND ATTRIBUTE_5 IS NOT NULL AND ATTRIBUTE_4 != 0 AND ATTRIBUTE_5 != 0
+GROUP BY SUBSTATION_ID
+ORDER BY CNT DESC
+LIMIT 10
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+
+SELECT count(m.SUBSTATION_ID), m.SUBSTATION_NAME, m.CAPACITY,
+        m.CAPACITY_INJ as dc_cap, m.ENERGY_TYPE, m. STATE_CODE FROM `RSM_SUBSTATION_MASTER` m
+        INNER JOIN `OPS_CONFIGURATION_FORECASTS` r ON m.SUBSTATION_ID = r.SUBSTATION_ID 
+        and r.STATUS =1 and m.CAPACITY >=50
+        
+---------------------------------------------------------------max_value------------------------------------------------------------------
+select MAX(CAST(R0_POWER_FC AS SIGNED)) as maxinv from DATA_FORECAST_SUBSTATION where SUBSTATION_ID ='SS01236' and TIMESTAMP between '2022-04-25 00:00:00' and '2022-04-25 23:59:00'
+
+---------------------------------------------------------------REMC-DB--------------------------------------------------------------------
+
+query to fetch forecast for REMC DB - > 
+🤣️wrong_query: 
+SELECT 
+    STATE, POWER_FORECAST, MAX(UPLOAD_TIMESTAMP)
+FROM
+    DATA_FORECAST_VSTF
+WHERE
+    TIMESTAMP >= '2021-01-01 00:00:00' AND TIMESTAMP <= '2021-01-01 23:59:00'
+GROUP BY STATE, TIMESTAMP
+------------------------
+right query:
+SELECT 
+    STATE, TIMESTAMP, POWER_FORECAST
+FROM
+    DATA_FORECAST_VSTF
+WHERE
+    (TIMESTAMP , UPLOAD_TIMESTAMP) IN (SELECT 
+            TIMESTAMP, MAX(UPLOAD_TIMESTAMP)
+        FROM
+            DATA_FORECAST_VSTF
+        WHERE
+            STATE = 'IN_NR'
+                AND TIMESTAMP >= '2021-01-01 00:00:00'
+                AND TIMESTAMP <= '2021-01-01 23:59:00'
+        GROUP BY TIMESTAMP)
+---------------------------------------Turbine location details--------------------------------------------------------------------------
+
+SELECT T1.TURBINE_ID, T2.LOCATION_ID, T2.LATITUDE, T2.LONGITUDE
+FROM 
+RSM_TURBINE_MASTER T1 INNER JOIN RSM_LOCATION_MASTER T2 ON T1.LOCATION_ID = T2.LOCATION_ID 
+WHERE T1.TURBINE_ID IN (SELECT TURBINE_ID FROM RSM_SUBSTATION_TURBINE WHERE SUBSTATION_ID IN (SELECT SUBSTATION_ID FROM RSM_SUBSTATION_MASTER where ENERGY_TYPE = 'WIND')) 
+--------------------------------------------------------------------------------------------------------------------------------------
+
+SELECT 
+    DISTINCT(T1.SUBSTATION_ID)
+FROM
+    DATA_ACTUAL_PSS_PRO_2021 T1
+        INNER JOIN
+    RSM_SUBSTATION_MASTER T2 ON T1.SUBSTATION_ID = T2.SUBSTATION_ID
+WHERE
+    SOURCE_TAG = 'UCA_SCADA_CLT'
+   
+    AND ATTRIBUTE_4 IS NOT NULL AND ATTRIBUTE_4 != 0
+--------------------------------------------------------Turbine_details----------------------------------------------------------------
+sql = """SELECT RSM_SUBSTATION_MASTER.SUBSTATION_ID, RSM_SUBSTATION_MASTER.STATE_CODE, RSM_SUBSTATION_TURBINE.TURBINE_ID, RSM_TURBINE_MASTER.LOCATION_ID FROM RSM_SUBSTATION_TURBINE INNER JOIN RSM_SUBSTATION_MASTER on RSM_SUBSTATION_MASTER.ENERGY_TYPE = 'WIND' and RSM_SUBSTATION_MASTER.SUBSTATION_ID = RSM_SUBSTATION_TURBINE.SUBSTATION_ID INNER JOIN RSM_TURBINE_MASTER on RSM_TURBINE_MASTER.TURBINE_ID = RSM_SUBSTATION_TURBINE.TURBINE_ID INNER JOIN RSM_LOCATION_MASTER on RSM_LOCATION_MASTER.LOCATION_ID = RSM_TURBINE_MASTER.LOCATION_ID"""
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+
+SELECT RSM_SUBSTATION_MASTER.SUBSTATION_ID, RSM_SUBSTATION_MASTER.ENERGY_TYPE, RSM_SUBSTATION_LOCATION.LOCATION_ID, RSM_LOCATION_MASTER.LATITUDE, RSM_LOCATION_MASTER.LATITUDE, RSM_WEATHER_MAP_SECONDARY.WEATHER_ID FROM `RSM_SUBSTATION_MASTER` INNER JOIN `RSM_SUBSTATION_LOCATION` on RSM_SUBSTATION_MASTER.SUBSTATION_ID = RSM_SUBSTATION_LOCATION.SUBSTATION_ID AND RSM_SUBSTATION_MASTER.SUBSTATION_ID='SS00588' INNER JOIN RSM_LOCATION_MASTER on RSM_LOCATION_MASTER.LOCATION_ID = RSM_SUBSTATION_LOCATION.LOCATION_ID INNER JOIN RSM_WEATHER_MAP_SECONDARY on RSM_WEATHER_MAP_SECONDARY.LOCATION_ID = RSM_SUBSTATION_LOCATION.LOCATION_ID
+
+------------------------------------SOLAR STATIC DETAILS---------------------------------------------------------------------------------
+sql = """SELECT 
+                RSM_WEATHER_MAP_PRIMARY.SUBSTATION_ID,
+                RSM_WEATHER_MAP_PRIMARY.LOCATION_ID AS WEATHER_ID,
+                RSM_WEATHER_MAP_LOCATIONS.LATITUDE,
+                RSM_WEATHER_MAP_LOCATIONS.LONGITUDE,
+                RSM_SUBSTATION_MASTER.STATE_CODE
+        
+            FROM
+                `RSM_WEATHER_MAP_PRIMARY`
+                    INNER JOIN
+                RSM_WEATHER_MAP_LOCATIONS ON RSM_WEATHER_MAP_PRIMARY.LOCATION_ID = RSM_WEATHER_MAP_LOCATIONS.LOCATION_ID
+                    INNER JOIN
+                RSM_SUBSTATION_MASTER ON RSM_WEATHER_MAP_PRIMARY.SUBSTATION_ID = RSM_SUBSTATION_MASTER.SUBSTATION_ID AND RSM_SUBSTATION_MASTER.ENERGY_TYPE = 'SOLAR'""""
+                
+                
+                
+                
+                
+           SELECT SOURCE_TAG, max(TIMESTAMP) from DATA_ACTUAL_PSS_PRO_2022 WHERE SUBSTATION_ID = 'SS01002' group by SOURCE_TAG
+SELECT SOURCE_TAG, max(TIMESTAMP) from DATA_ACTUAL_PSS_PRO_2022 WHERE SUBSTATION_ID = 'SS01002' group by SOURCE_TAG
+
+
+
+
+
+
+SELECT * FROM `RSM_SUBSTATION_TURBINE` T4 INNER JOIN (SELECT T1.SUBSTATION_ID, T1.STATE_CODE FROM RSM_SUBSTATION_MASTER T1 INNER JOIN OPS_CONFIGURATION_FORECASTS T2 on T1.SUBSTATION_ID = T2.SUBSTATION_ID and T2.STATUS=1 and T1.ENERGY_TYPE ='WIND') T3 on T3.SUBSTATION_ID = T4.SUBSTATION_ID
+
+
+###
+username = request.POST['username']
+password = request.POST['password']
+query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
+
+If user type: ' OR 1=1 --
+
+# Query become this:
+SELECT * FROM users WHERE username='' OR 1=1 --' AND password=''
+This would cause the SQL statement to always return true, giving the attacker access to all of the data in the users table.
+
+# Pbest practice use placeholder like below one: ? ->
+query = 'SELECT * FROM users WHERE username = ?'
+
+# execute the query with a parameter
+username = 'johndoe'
+c.execute(query, (username,))
+
+Other way is use : ->
+# get user input
+username = input("Enter a username: ")
+
+# define a parameterized query
+query = 'SELECT * FROM users WHERE username = :username'
+
+# execute the query with a parameter
+c.execute(query, {'username': username})
+
+# retrieve the results
+results = c.fetchall()
+
+file:///home/reconnect/Pictures/Screenshot%20from%202023-04-02%2014-34-27.png
+
+
+: OR create a dictionary and can pass.
+
+
+
+cursor.execute(sql_command, parameters)
+
+Diff between execute and fetch method.
+
+where sql_command is a string containing the SQL command to execute and parameters is a tuple or dictionary containing the parameters to bind to the placeholders in the SQL command (if any).
+When you call execute() on a cursor object, it sends the SQL command and parameters to the database engine for execution. The database engine then processes the command and returns the results (if any).
+
+execute() and fetch methods are two separate concepts in database programming, but they are often used together to perform common tasks, such as querying and modifying data.
+execute() is a method used to execute SQL commands, such as SELECT, INSERT, UPDATE, DELETE, and more. When you call execute() on a cursor object, it sends the SQL command and parameters to the database engine for execution. The database engine then processes the command and returns the results (if any).
+On the other hand, fetch methods are used to retrieve the results of a SELECT statement executed using the execute() method. When you execute a SELECT statement, the database engine returns a result set containing the rows that match the query criteria. The fetch methods are used to retrieve these rows and work with the data returned by the SELECT statement.
+In summary, execute() is used to send SQL commands to the database engine, while fetch methods are used to retrieve data from the result set returned by a SELECT statement executed using the execute() method.
+
+Here are some other ways to prevent SQL injection attacks:
+Parameterized queries: As mentioned before, parameterized queries are one of the best ways to prevent SQL injection attacks. By using placeholders and passing parameters separately, you can ensure that user input is properly escaped and not interpreted as part of the SQL command.
+Input validation: Another way to prevent SQL injection attacks is to validate user input before using it in a SQL command. This involves checking the data type and format of the input, as well as checking for potentially dangerous characters or patterns that could indicate an attack.
+Stored procedures: Stored procedures are precompiled SQL code that can be called by a client application. By using stored procedures, you can ensure that user input is properly validated and sanitized before it is used in a SQL command. This can help prevent SQL injection attacks, as well as improve performance by reducing the amount of SQL code that needs to be sent to the database server.
+Least privilege: To minimize the potential damage from a SQL injection attack, it's important to limit the privileges of database users. Only give users the minimum privileges they need to perform their tasks, and avoid using administrative accounts for routine tasks.
+Regular updates and security patches: It's important to keep your database software up to date with the latest security patches and updates. This can help protect against known vulnerabilities and exploits that could be used in SQL injection attacks.
+Database firewalls: Database firewalls can be used to monitor and filter incoming SQL traffic to identify and block potential SQL injection attacks. These firewalls can be configured to look for specific patterns or keywords that could indicate an attack, and can be an effective tool in preventing SQL injection attacks.
+
+
+Sql_injection: 
+
+SELECT * FROM products WHERE name = 'input';
+
+' OR 1=1; --
+
+SELECT * FROM products WHERE name = '' OR 1=1; --';
+
+# Example of a SQL injection attack that would be prevented
+name = "'; DROP TABLE products; --"
+query = "SELECT * FROM products WHERE name = ?"
+
+If we use placeholder: When a query uses placeholders, the actual user input is passed as a parameter to the query, rather than being directly inserted into the SQL code.
+
+When the query is executed, the database driver properly escapes and sanitizes the parameter value before binding it to the placeholder. This ensures that any attempt to inject malicious SQL code is unsuccessful, because the input is treated as a parameter and not as executable code.
+
+
+
+
+parameter binding?
+Parameter binding is an effective way to prevent SQL injection attacks because it ensures that user input is properly escaped and sanitized before it is inserted into the query
+Sanitization is the process of removing or modifying any potentially malicious or unwanted data from the parameter value. For example, the driver might remove or replace any special characters or escape sequences that could be used to inject SQL code into the query.
+
+
+
+
+CREATE TABLE Employee ( emp_id INT PRIMARY KEY, department VARCHAR(50), salary INT );
+ INSERT INTO Employee (emp_id, department, salary) VALUES (1, 'HR', 50000), (2, 'HR', 52000), (3, 'IT', 60000), (4, 'IT', 55000), (5, 'Finance', 70000), (6, 'Finance', 72000); SELECT * FROM Employee;
+ SELECT department, MAX(salary) AS max_salary, emp_id FROM Employee GROUP BY department;
+
+
+-- groupby with max : VVVVIMPPP - department and SALARY make it unique and helps to select. for eg. ss_id and timestamp and src_tag to select power data.
+
+    SELECT * FROM Employee;
+
+    SELECT emp_id, salary from Employee
+    where (department, salary) in (SELECT department, MAX(salary) AS salary
+    FROM Employee
+    GROUP BY department)
+
+
+"""
+-- Join if dont want to use subquery groupby with max :
+    SELECT e.department, e.emp_id, e.salary AS max_salary
+    FROM Employee e
+    JOIN (
+        SELECT department, MAX(salary) AS max_salary
+        FROM Employee
+        GROUP BY department
+    ) max_salaries
+    ON e.department = max_salaries.department AND e.salary = max_salaries.max_salary;
+
+
